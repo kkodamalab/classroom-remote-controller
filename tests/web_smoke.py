@@ -47,6 +47,10 @@ async def main():
             await page.goto(base+'#'+urlencode({'id':'expired','token':'expired','expires':1}))
             await page.get_by_role('button',name='接続を開始',exact=True).click()
             await page.get_by_text('QRがないか期限切れです。PCで再発行してください').wait_for()
+            await page.goto(base+'?demo=1')
+            await page.get_by_role('button',name='接続を開始',exact=True).click()
+            await page.get_by_role('button',name='次へ →',exact=True).click()
+            await page.get_by_text('デモ表示：powerpoint / next（未実行）',exact=True).wait_for()
             print('PASS: production mobile React UI, approval gating, actual DataChannel, result distinction, tabs, portrait/landscape overflow, emergency disconnect, expired QR; no OS input.')
             await browser.close()
     finally:
