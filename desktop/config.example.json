@@ -1,0 +1,8 @@
+{
+  "web_url": "https://kkodamalab.github.io/classroom-remote-controller/",
+  "host": "0.peerjs.com",
+  "port": 443,
+  "path": "/",
+  "key": "peerjs",
+  "iceServers": [{"urls": "stun:stun.l.google.com:19302"}]
+}
