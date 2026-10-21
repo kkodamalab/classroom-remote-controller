@@ -100,6 +100,7 @@ npm --prefix web run build
 ```powershell
 .\.venv\Scripts\python -m pip install playwright
 .\.venv\Scripts\python -m tests.interop_browser
+.\.venv\Scripts\python -m tests.web_smoke
 ```
 
 Portable EXEビルド:
@@ -108,7 +109,9 @@ Portable EXEビルド:
 .\.venv\Scripts\python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
 ```
 
-`dist/ClassroomRemoteController.exe` は一時フォルダーに展開して実行されます（Portable＝完全にディスク書込なしではありません）。CIはWebビルド・Windows自動テスト・EXEビルドを実行します。mainはPagesへ、`v*`タグはEXEとSHA256付きの実験版Releaseへ公開します。
+`dist/ClassroomRemoteController.exe` は一時フォルダーに展開して実行されます（Portable＝完全にディスク書込なしではありません）。CIはWebビルド・Windows自動テスト・EXEビルド・`--self-test`起動確認を実行します。mainはPagesへ、`v*`タグはEXEとSHA256付きの実験版Releaseへ公開します。
+
+PC操作はワーカースレッドで実行し、COM待機中も緊急停止UIを応答可能に保ちます。停止は新規操作を直ちに拒否しますが、既にOS/COMに渡した操作を取り消すことはできません。実行中の追加コマンドは `executor_busy` として拒否し、キューに溜めません。
 
 ## Phase完了条件
 

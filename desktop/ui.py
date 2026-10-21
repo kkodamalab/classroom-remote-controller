@@ -72,7 +72,9 @@ class Window(QMainWindow):
             config = json.loads(config_path.read_text('utf-8')) if config_path.exists() else {}
             self.config = config
             from desktop.transport import Transport
-            self.transport = Transport(self.session, config, self.controller.execute, self.pending, self.changed, self.log)
+            session = self.session
+            execute = lambda profile, action, args: self.controller.execute(profile, action, args, authorize=session.valid)
+            self.transport = Transport(session, config, execute, self.pending, self.changed, self.log)
             self.status.setText('シグナリング接続中…')
             await self.transport.start()
             if self.session.revoked:

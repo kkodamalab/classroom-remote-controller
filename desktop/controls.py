@@ -23,6 +23,9 @@ class Controller:
 
     def check(self, profile):
         import win32gui, win32process
+        guard = getattr(self, 'guard', None)
+        if guard:
+            guard()
         if not self.target:
             raise RuntimeError('no_target')
         hwnd, pid, exe = self.target
@@ -57,30 +60,48 @@ class Controller:
         return 'input_dispatched_unverified'
 
     def powerpoint(self, action):
-        import win32com.client, win32process
+        import win32com.client, win32process, win32gui
         app = win32com.client.GetActiveObject('PowerPoint.Application')
         if win32process.GetWindowThreadProcessId(int(app.HWND))[1] != self.target[1]:
             raise RuntimeError('com_target_mismatch')
+        target_window = next((app.Windows(i) for i in range(1, app.Windows.Count + 1) if int(app.Windows(i).HWND) == self.target[0]), None)
+        target_show = next((app.SlideShowWindows(i) for i in range(1, app.SlideShowWindows.Count + 1) if int(app.SlideShowWindows(i).HWND) == self.target[0]), None)
+        if target_window is None and target_show is None:
+            raise RuntimeError('com_window_mismatch')
+        presentation = (target_window or target_show).Presentation
+        shows = [app.SlideShowWindows(i) for i in range(1, app.SlideShowWindows.Count + 1) if app.SlideShowWindows(i).Presentation.FullName == presentation.FullName]
+        foreground = win32gui.GetForegroundWindow()
+        if foreground != self.target[0] and not any(int(show.HWND) == foreground for show in shows):
+            raise RuntimeError('com_presentation_mismatch')
         if action == 'start':
-            app.ActivePresentation.SlideShowSettings.Run()
+            presentation.SlideShowSettings.Run()
         else:
-            if app.SlideShowWindows.Count == 0:
-                if action in ('next', 'previous'):
-                    view = app.ActiveWindow.View
+            if not shows:
+                if action in ('next', 'previous') and target_window is not None:
+                    view = target_window.View
                     current = view.Slide.SlideIndex
-                    total = app.ActivePresentation.Slides.Count
+                    total = presentation.Slides.Count
                     view.GotoSlide(max(1, min(total, current + (1 if action == 'next' else -1))))
                 else:
                     raise RuntimeError('slideshow_not_running')
             else:
-                view = app.SlideShowWindows(1).View
+                show = next((show for show in shows if int(show.HWND) == foreground), None)
+                if show is None:
+                    raise RuntimeError('slideshow_not_foreground')
+                view = show.View
                 if action == 'next': view.Next()
                 elif action == 'previous': view.Previous()
                 elif action == 'end': view.Exit()
                 elif action == 'blackout': view.State = 1 if view.State == 3 else 3
         return 'com_completed'
 
-    def execute(self, profile, action, args):
+    def execute(self, profile, action, args, authorize=None):
+        # Freeze the local target selection for the entire command.
+        snapshot = Controller()
+        snapshot.target, snapshot.locked, snapshot.guard = self.target, self.locked, authorize
+        return snapshot._execute(profile, action, args)
+
+    def _execute(self, profile, action, args):
         self.check(profile)
         if profile == 'powerpoint':
             # No silent keyboard fallback when COM fails.
@@ -104,6 +125,8 @@ class Controller:
             win32gui.EnumChildWindows(dialog, lambda child, _: edits.append(child) if win32gui.GetClassName(child) == 'Edit' else None, None)
             if len(edits) != 1 or win32gui.GetForegroundWindow() != dialog:
                 raise RuntimeError('page_dialog_unrecognized')
+            if self.guard:
+                self.guard()
             win32gui.SendMessage(edits[0], win32con.WM_SETTEXT, 0, str(args['page']))
             win32gui.PostMessage(dialog, win32con.WM_COMMAND, win32con.IDOK, 0)
             return 'input_dispatched_unverified'

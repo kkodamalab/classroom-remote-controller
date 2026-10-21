@@ -21,6 +21,7 @@ class Transport:
         self.closing = False
         self.opened = asyncio.Event()
         self.candidates = []
+        self.executing = False
 
     async def start(self):
         host = self.config.get('host', '0.peerjs.com')
@@ -118,13 +119,10 @@ class Transport:
                 if type(seq) is not int:
                     seq = None
                 profile, action, args = self.session.command(data)
-                try:
-                    code = self.execute(profile, action, args)
-                    self.send({'type': 'result', 'seq': seq, 'ok': True, 'code': code})
-                    self.log(f'#{seq} {profile}/{action}: {code}')
-                except Exception:
-                    self.send({'type': 'result', 'seq': seq, 'ok': False, 'code': 'target_focus_or_execution_failed'})
-                    self.log(f'#{seq}: execution rejected/failed')
+                if self.executing:
+                    raise Rejected('executor_busy')
+                self.executing = True
+                self.tasks.append(asyncio.create_task(self.run_command(seq, profile, action, args)))
             else:
                 raise Rejected('schema')
         except Rejected as exc:
@@ -137,6 +135,34 @@ class Transport:
         except Exception:
             self.session.revoke()
             asyncio.create_task(self.close('invalid_message'))
+
+    async def run_command(self, seq, profile, action, args):
+        def work():
+            import sys
+            if sys.platform == 'win32':
+                import pythoncom
+                pythoncom.CoInitialize()
+            try:
+                self.session.valid()
+                return self.execute(profile, action, args)
+            finally:
+                if sys.platform == 'win32':
+                    pythoncom.CoUninitialize()
+        try:
+            code = await asyncio.to_thread(work)
+            if not self.session.revoked:
+                self.send({'type': 'result', 'seq': seq, 'ok': True, 'code': code})
+                self.log(f'#{seq} {profile}/{action}: {code}')
+        except asyncio.CancelledError:
+            pass
+        except Exception:
+            self.send({'type': 'result', 'seq': seq, 'ok': False, 'code': 'target_focus_or_execution_failed'})
+            self.log(f'#{seq}: execution rejected/failed')
+        finally:
+            self.executing = False
+            current = asyncio.current_task()
+            if current in self.tasks:
+                self.tasks.remove(current)
 
     def approve(self):
         if not self.channel or self.channel.readyState != 'open':

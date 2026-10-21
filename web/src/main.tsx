@@ -5,6 +5,8 @@ import './style.css';
 
 const pair = new URLSearchParams(location.hash.slice(1));
 history.replaceState(null, '', location.pathname);
+// A newly scanned QR may navigate only the fragment in an already-open tab.
+window.addEventListener('hashchange',()=>{if(location.hash)location.reload();});
 const mock = new URLSearchParams(location.search).has('demo');
 function App() {
   const [status, setStatus] = useState(mock ? 'デモ：PC操作は行いません' : 'QRコードを読み取ってください');
@@ -16,8 +18,9 @@ function App() {
   const conn = useRef<DataConnection | null>(null), peer = useRef<Peer | null>(null);
   const seq = useRef(0), last = useRef(0), pong = useRef(0), approved = useRef(false);
   const pending = useRef(new Map<number, number>());
+  const connectTimer = useRef<number | undefined>(undefined);
   const point = useRef<{x:number,y:number}|null>(null);
-  function stop(reason:string) { approved.current=false; setReady(false); setConnecting(false); conn.current?.close(); peer.current?.destroy(); pending.current.clear(); setStatus(reason); }
+  function stop(reason:string) { clearTimeout(connectTimer.current); approved.current=false; setReady(false); setConnecting(false); conn.current?.close(); peer.current?.destroy(); pending.current.clear(); setStatus(reason); }
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (conn.current?.open) {
@@ -31,11 +34,13 @@ function App() {
   function connect() {
     if(connecting)return;
     if(mock){setReady(true);setStatus('デモ接続：実機には送信しません');return;}
-    if(!pair.get('id') || !pair.get('token') || Number(pair.get('expires'))*1000<Date.now()){setStatus('QRがないか期限切れです。PCで再発行してください');return;}
+    const expiry=Number(pair.get('expires'));
+    if(!pair.get('id') || !pair.get('token') || !Number.isFinite(expiry) || expiry*1000<Date.now()){setStatus('QRがないか期限切れです。PCで再発行してください');return;}
     setConnecting(true);setStatus('シグナリング接続中…');
     const p = new Peer({host:pair.get('host')||'0.peerjs.com',port:Number(pair.get('port')||443),path:pair.get('path')||'/',key:pair.get('key')||'peerjs',secure:true,config:{iceServers:iceServers}});
     peer.current=p;
     const timeout=window.setTimeout(()=>{if(!approved.current)stop('接続または承認がタイムアウトしました。ネットワーク・TURN設定を確認してください');},45000);
+    connectTimer.current=timeout;
     p.on('error', e=>{clearTimeout(timeout);stop(`接続失敗：${e.type}。新しいQRで再接続してください`);});
     p.on('disconnected',()=>stop('シグナリング切断。新しいQRが必要です'));
     p.on('open',()=>{

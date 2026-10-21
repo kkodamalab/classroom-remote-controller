@@ -33,6 +33,11 @@ jobs:
       - run: python -m pip install -r desktop/requirements.txt pytest pyinstaller
       - run: python -m pytest tests -q
       - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Portable startup smoke test
+        run: |
+          $testProcess = Start-Process -FilePath dist/ClassroomRemoteController.exe -ArgumentList '--self-test' -WindowStyle Hidden -PassThru
+          if (-not $testProcess.WaitForExit(60000)) { $testProcess.Kill(); throw 'Portable startup timed out' }
+          if ($testProcess.ExitCode -ne 0) { throw "Portable startup failed: $($testProcess.ExitCode)" }
       - uses: actions/upload-artifact@v4
         with:
           name: ClassroomRemoteController-Windows
