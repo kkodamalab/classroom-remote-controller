@@ -1,0 +1,46 @@
+name: Validate and build Windows
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run build
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: desktop/requirements.txt
+      - run: python -m pip install -r desktop/requirements.txt pytest pyinstaller
+      - run: python -m pytest tests -q
+      - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Portable startup smoke test
+        run: |
+          $testProcess = Start-Process -FilePath dist/ClassroomRemoteController.exe -ArgumentList '--self-test' -WindowStyle Hidden -PassThru
+          if (-not $testProcess.WaitForExit(60000)) { $testProcess.Kill(); throw 'Portable startup timed out' }
+          if ($testProcess.ExitCode -ne 0) { throw "Portable startup failed: $($testProcess.ExitCode)" }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ClassroomRemoteController-Windows
+          path: dist/ClassroomRemoteController.exe
+          if-no-files-found: error
+

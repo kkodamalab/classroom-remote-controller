@@ -1,0 +1,1455 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Classroom Remote Controller command v1",
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "powerpoint"
+        },
+        "action": {
+          "const": "blackout"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "powerpoint"
+        },
+        "action": {
+          "const": "end"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "powerpoint"
+        },
+        "action": {
+          "const": "next"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "powerpoint"
+        },
+        "action": {
+          "const": "previous"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "powerpoint"
+        },
+        "action": {
+          "const": "start"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_edge"
+        },
+        "action": {
+          "const": "next"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_edge"
+        },
+        "action": {
+          "const": "previous"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_edge"
+        },
+        "action": {
+          "const": "zoom_in"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_edge"
+        },
+        "action": {
+          "const": "zoom_out"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_acrobat"
+        },
+        "action": {
+          "const": "next"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_acrobat"
+        },
+        "action": {
+          "const": "page"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "page"
+          ],
+          "properties": {
+            "page": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9999
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_acrobat"
+        },
+        "action": {
+          "const": "previous"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_acrobat"
+        },
+        "action": {
+          "const": "zoom_in"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "pdf_acrobat"
+        },
+        "action": {
+          "const": "zoom_out"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "back"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "forward"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "next"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "previous"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "scroll_down"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "scroll_up"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "tab_next"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "browser"
+        },
+        "action": {
+          "const": "tab_previous"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "youtube"
+        },
+        "action": {
+          "const": "mute"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "youtube"
+        },
+        "action": {
+          "const": "play_pause"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "youtube"
+        },
+        "action": {
+          "const": "seek_back"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "youtube"
+        },
+        "action": {
+          "const": "seek_forward"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "youtube"
+        },
+        "action": {
+          "const": "volume_down"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "youtube"
+        },
+        "action": {
+          "const": "volume_up"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "vlc"
+        },
+        "action": {
+          "const": "mute"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "vlc"
+        },
+        "action": {
+          "const": "play_pause"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "vlc"
+        },
+        "action": {
+          "const": "seek_back"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "vlc"
+        },
+        "action": {
+          "const": "seek_forward"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "vlc"
+        },
+        "action": {
+          "const": "volume_down"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "vlc"
+        },
+        "action": {
+          "const": "volume_up"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "windows"
+        },
+        "action": {
+          "const": "escape"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "windows"
+        },
+        "action": {
+          "const": "mute"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "windows"
+        },
+        "action": {
+          "const": "switch_app"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "windows"
+        },
+        "action": {
+          "const": "volume_down"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "windows"
+        },
+        "action": {
+          "const": "volume_up"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "mouse"
+        },
+        "action": {
+          "const": "left"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "mouse"
+        },
+        "action": {
+          "const": "move"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dx",
+            "dy"
+          ],
+          "properties": {
+            "dx": {
+              "type": "integer",
+              "minimum": -40,
+              "maximum": 40
+            },
+            "dy": {
+              "type": "integer",
+              "minimum": -40,
+              "maximum": 40
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "mouse"
+        },
+        "action": {
+          "const": "right"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [],
+          "properties": {}
+        }
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "seq",
+        "profile",
+        "action",
+        "args"
+      ],
+      "properties": {
+        "type": {
+          "const": "command"
+        },
+        "seq": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "profile": {
+          "const": "mouse"
+        },
+        "action": {
+          "const": "scroll"
+        },
+        "args": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "delta"
+          ],
+          "properties": {
+            "delta": {
+              "type": "integer",
+              "minimum": -3,
+              "maximum": 3
+            }
+          }
+        }
+      }
+    }
+  ]
+}

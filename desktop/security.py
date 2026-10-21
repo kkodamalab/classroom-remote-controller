@@ -35,7 +35,7 @@ class Bucket:
 class Session:
     def __init__(self, clock=time.time):
         self.clock = clock
-        self.id, self.token = secrets.token_urlsafe(24), secrets.token_urlsafe(32)
+        self.id, self.token = secrets.token_hex(24), secrets.token_urlsafe(32)
         self.expires = clock() + 300
         self.approved = False
         self.revoked = False

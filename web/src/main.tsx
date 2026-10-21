@@ -5,6 +5,8 @@ import './style.css';
 
 const pair = new URLSearchParams(location.hash.slice(1));
 history.replaceState(null, '', location.pathname);
+// A newly scanned QR may navigate only the fragment in an already-open tab.
+window.addEventListener('hashchange',()=>{if(location.hash)location.reload();});
 const mock = new URLSearchParams(location.search).has('demo');
 function App() {
   const [status, setStatus] = useState(mock ? 'デモ：PC操作は行いません' : 'QRコードを読み取ってください');
@@ -12,11 +14,13 @@ function App() {
   const [slide, setSlide] = useState('powerpoint'), [video, setVideo] = useState('youtube');
   const [result, setResult] = useState('操作結果はここに表示されます');
   const [name, setName] = useState('スマートフォン');
+  const [connecting,setConnecting] = useState(false);
   const conn = useRef<DataConnection | null>(null), peer = useRef<Peer | null>(null);
   const seq = useRef(0), last = useRef(0), pong = useRef(0), approved = useRef(false);
   const pending = useRef(new Map<number, number>());
+  const connectTimer = useRef<number | undefined>(undefined);
   const point = useRef<{x:number,y:number}|null>(null);
-  function stop(reason:string) { approved.current=false; setReady(false); setStatus(reason); conn.current?.close(); peer.current?.destroy(); pending.current.clear(); }
+  function stop(reason:string) { clearTimeout(connectTimer.current); approved.current=false; setReady(false); setConnecting(false); conn.current?.close(); peer.current?.destroy(); pending.current.clear(); setStatus(reason); }
   useEffect(() => {
     const timer = window.setInterval(() => {
       if (conn.current?.open) {
@@ -28,12 +32,15 @@ function App() {
     return () => {clearInterval(timer);conn.current?.close();peer.current?.destroy();};
   },[]);
   function connect() {
+    if(connecting)return;
     if(mock){setReady(true);setStatus('デモ接続：実機には送信しません');return;}
-    if(!pair.get('id') || !pair.get('token') || Number(pair.get('expires'))*1000<Date.now()){setStatus('QRがないか期限切れです。PCで再発行してください');return;}
-    setStatus('シグナリング接続中…');
+    const expiry=Number(pair.get('expires'));
+    if(!pair.get('id') || !pair.get('token') || !Number.isFinite(expiry) || expiry*1000<Date.now()){setStatus('QRがないか期限切れです。PCで再発行してください');return;}
+    setConnecting(true);setStatus('シグナリング接続中…');
     const p = new Peer({host:pair.get('host')||'0.peerjs.com',port:Number(pair.get('port')||443),path:pair.get('path')||'/',key:pair.get('key')||'peerjs',secure:true,config:{iceServers:iceServers}});
     peer.current=p;
     const timeout=window.setTimeout(()=>{if(!approved.current)stop('接続または承認がタイムアウトしました。ネットワーク・TURN設定を確認してください');},45000);
+    connectTimer.current=timeout;
     p.on('error', e=>{clearTimeout(timeout);stop(`接続失敗：${e.type}。新しいQRで再接続してください`);});
     p.on('disconnected',()=>stop('シグナリング切断。新しいQRが必要です'));
     p.on('open',()=>{
@@ -43,11 +50,11 @@ function App() {
         try { const d=JSON.parse(String(raw));
           if(d.type==='pong')pong.current=Date.now();
           if(d.type==='approved'){approved.current=true;clearTimeout(timeout);setReady(true);setStatus('接続済み・PC承認済み');}
-          if(d.type==='result' && pending.current.has(d.seq)){pending.current.delete(d.seq);setResult(`#${d.seq} PC実行${d.ok?'成功':'拒否／失敗'}：${d.code}`);}
+          if(d.type==='result' && pending.current.has(d.seq)){pending.current.delete(d.seq);setResult(`#${d.seq} ${d.ok?(d.code==='input_dispatched_unverified'?'PC入力送出済み（画面結果は未確認）':'PC実行成功'):'PC拒否／失敗'}：${d.code}`);}
           if(d.type==='error')stop(`PCが接続を終了：${d.code}`);
         } catch {stop('不正なPC応答');}
       });
-      c.on('close',()=>{clearTimeout(timeout);approved.current=false;setReady(false);setStatus('切断しました。PCでQRを再発行してください');});
+      c.on('close',()=>{clearTimeout(timeout);approved.current=false;setReady(false);setConnecting(false);pending.current.clear();setStatus('切断しました。PCでQRを再発行してください');});
       c.on('error',()=>stop('DataChannel接続失敗。TURN・学内ネットワーク制限を確認してください'));
     });
   }
@@ -60,7 +67,7 @@ function App() {
   }
   const button=(label:string,p:string,a:string,big=false)=><button disabled={!ready} className={big?'large':''} onClick={()=>send(p,a)}>{label}</button>;
   return <main><header><span className="eyebrow">CLASSROOM / REMOTE</span><h1>手のひらから、授業を。</h1><p role="status" className={ready?'online':'status'}>{status}</p></header>
-    {!ready&&<section><label>端末名<input maxLength={60} value={name} onChange={e=>setName(e.target.value)}/></label><button className="primary" onClick={connect}>接続を開始</button><p className="hint">PCに表示された端末名を確認して承認してください。</p></section>}
+    {!ready&&<section><label>端末名<input maxLength={60} value={name} onChange={e=>setName(e.target.value)}/></label><button className="primary" disabled={connecting} onClick={connect}>接続を開始</button><p className="hint">PCに表示された端末名を確認して承認してください。</p></section>}
     <nav>{['SLIDE','VIDEO','PC'].map(t=><button key={t} aria-pressed={tab===t} onClick={()=>setTab(t)}>{t}</button>)}</nav>
     <section>
     {tab==='SLIDE'&&<><label>操作プロファイル<select value={slide} onChange={e=>setSlide(e.target.value)}><option value="powerpoint">PowerPoint</option><option value="pdf_edge">PDF / Edge</option><option value="pdf_acrobat">PDF / Acrobat</option><option value="browser">Browser</option></select></label><div className="grid">{button('← 前へ',slide,'previous',true)}{button('次へ →',slide,'next',true)}</div>{slide==='powerpoint'?<div className="grid">{button('開始',slide,'start')}{button('終了',slide,'end')}{button('ブラックアウト',slide,'blackout')}</div>:<div className="grid">{slide.startsWith('pdf')?<>{button('拡大',slide,'zoom_in')}{button('縮小',slide,'zoom_out')}</>:<>{button('戻る',slide,'back')}{button('進む',slide,'forward')}{button('前のタブ',slide,'tab_previous')}{button('次のタブ',slide,'tab_next')}</>}</div>}{slide==='pdf_acrobat'&&<form onSubmit={e=>{e.preventDefault();const el=e.currentTarget.elements.namedItem('page') as HTMLInputElement;send(slide,'page',{page:Number(el.value)});}}><input name="page" aria-label="ページ番号" type="number" min="1" max="9999" defaultValue="1"/><button disabled={!ready}>ページ移動</button></form>}</>}
