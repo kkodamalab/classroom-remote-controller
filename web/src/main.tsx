@@ -4,10 +4,10 @@ import Peer, {DataConnection} from 'peerjs';
 import './style.css';
 
 const pair = new URLSearchParams(location.hash.slice(1));
+const mock = new URLSearchParams(location.search).has('demo');
 history.replaceState(null, '', location.pathname);
 // A newly scanned QR may navigate only the fragment in an already-open tab.
 window.addEventListener('hashchange',()=>{if(location.hash)location.reload();});
-const mock = new URLSearchParams(location.search).has('demo');
 function App() {
   const [status, setStatus] = useState(mock ? 'デモ：PC操作は行いません' : 'QRコードを読み取ってください');
   const [ready, setReady] = useState(false), [tab, setTab] = useState('SLIDE');
