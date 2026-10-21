@@ -1,0 +1,9 @@
+PySide6>=6.8,<7
+aiortc>=1.14,<2
+aiohttp>=3.11,<4
+qasync>=0.27,<1
+qrcode>=8,<9
+Pillow>=11,<13
+pywin32>=308; sys_platform == 'win32'
+psutil>=6,<8
+jsonschema>=4.23,<5
