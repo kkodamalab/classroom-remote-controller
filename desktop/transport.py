@@ -52,6 +52,7 @@ class Transport:
                     if payload.get('type') != 'data' or payload.get('serialization') != 'raw':
                         raise Rejected('unsupported_channel')
                     self.source, self.connection_id = data['src'], payload['connectionId']
+                    self.last_seen = time.monotonic()
                     ice = self.config.get('iceServers', [{'urls': 'stun:stun.l.google.com:19302'}])
                     self.pc = RTCPeerConnection(RTCConfiguration(iceServers=[RTCIceServer(**server) for server in ice]))
                     self.pc.on('datachannel', self.on_channel)
@@ -72,7 +73,7 @@ class Transport:
                         candidate = candidate_from_sdp(c['candidate'].removeprefix('candidate:'))
                         candidate.sdpMid, candidate.sdpMLineIndex = c.get('sdpMid'), c.get('sdpMLineIndex')
                         await self.pc.addIceCandidate(candidate)
-                elif kind in ('ERROR', 'ID-TAKEN', 'INVALID-KEY', 'EXPIRE', 'LEAVE'):
+                elif kind in ('ERROR', 'ID-TAKEN', 'INVALID-KEY', 'EXPIRE') or (kind == 'LEAVE' and data.get('src') == self.source):
                     raise Rejected('signaling_' + kind.lower())
         except asyncio.CancelledError:
             return

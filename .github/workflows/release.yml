@@ -1,0 +1,24 @@
+name: Release portable EXE
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r desktop/requirements.txt pytest pyinstaller
+      - run: python -m pytest tests -q
+      - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Get-FileHash dist/ClassroomRemoteController.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  ClassroomRemoteController.exe" } | Set-Content dist/SHA256SUMS.txt
+          gh release create $env:GITHUB_REF_NAME dist/ClassroomRemoteController.exe dist/SHA256SUMS.txt desktop/config.example.json --prerelease --title "$env:GITHUB_REF_NAME - classroom pilot" --notes-file RELEASE_NOTES.md
+
