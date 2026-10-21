@@ -89,14 +89,59 @@ class Controller:
             'pdf_edge': {'next': (34,), 'previous': (33,), 'zoom_in': (17, 187), 'zoom_out': (17, 189)},
             'pdf_acrobat': {'next': (34,), 'previous': (33,), 'zoom_in': (17, 187), 'zoom_out': (17, 189)},
             'browser': {'scroll_up': (38,), 'scroll_down': (40,), 'back': (18, 37), 'forward': (18, 39), 'tab_next': (17, 9), 'tab_previous': (17, 16, 9), 'next': (34,), 'previous': (33,)},
+            'youtube': {'play_pause': (75,), 'seek_forward': (76,), 'seek_back': (74,), 'volume_up': (38,), 'volume_down': (40,), 'mute': (77,)},
+            'vlc': {'play_pause': (32,), 'seek_forward': (18, 39), 'seek_back': (18, 37), 'volume_up': (17, 38), 'volume_down': (17, 40), 'mute': (77,)},
+            'windows': {'volume_up': (175,), 'volume_down': (174,), 'mute': (173,), 'escape': (27,)},
         }
         if profile == 'pdf_acrobat' and action == 'page':
-            self.keys(profile, 17, 16, 78)  # Acrobat Go To Page
-            time.sleep(.08)
-            self.keys(profile, 17, 65)
-            for digit in str(args['page']):
-                self.keys(profile, ord(digit))  # bounded integer only; no user-provided strings
-            return self.keys(profile, 13)
+            import win32gui, win32process, win32con
+            self.keys(profile, 17, 16, 78)
+            time.sleep(.1)
+            dialog = win32gui.GetForegroundWindow()
+            if win32gui.GetClassName(dialog) != '#32770' or win32process.GetWindowThreadProcessId(dialog)[1] != self.target[1] or win32gui.GetWindow(dialog, win32con.GW_OWNER) != self.target[0]:
+                raise RuntimeError('page_dialog_unrecognized')
+            edits = []
+            win32gui.EnumChildWindows(dialog, lambda child, _: edits.append(child) if win32gui.GetClassName(child) == 'Edit' else None, None)
+            if len(edits) != 1 or win32gui.GetForegroundWindow() != dialog:
+                raise RuntimeError('page_dialog_unrecognized')
+            win32gui.SendMessage(edits[0], win32con.WM_SETTEXT, 0, str(args['page']))
+            win32gui.PostMessage(dialog, win32con.WM_COMMAND, win32con.IDOK, 0)
+            return 'input_dispatched_unverified'
+        if profile == 'windows' and action == 'switch_app':
+            if self.locked:
+                raise RuntimeError('target_locked')
+            return self.keys(profile, 18, 9)
+        if profile == 'mouse':
+            if not self.locked:
+                raise RuntimeError('mouse_requires_lock')
+            return self.mouse(action, args)
         if profile in maps and action in maps[profile]:
             return self.keys(profile, *maps[profile][action])
         raise RuntimeError('unsupported')
+
+    def mouse(self, action, args):
+        import win32gui, win32api, win32con
+        hwnd = self.check('mouse')
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        x, y = win32api.GetCursorPos()
+        if action == 'move':
+            x = max(left, min(right - 1, x + args['dx']))
+            y = max(top, min(bottom - 1, y + args['dy']))
+        # Do not click/scroll an overlay belonging to another window.
+        under = win32gui.WindowFromPoint((x, y))
+        if win32gui.GetAncestor(under, 2) != hwnd:
+            raise RuntimeError('pointer_outside_target')
+        self.check('mouse')
+        if action == 'move':
+            win32api.SetCursorPos((x, y))
+        elif action in ('left', 'right'):
+            down, up = (win32con.MOUSEEVENTF_LEFTDOWN, win32con.MOUSEEVENTF_LEFTUP) if action == 'left' else (win32con.MOUSEEVENTF_RIGHTDOWN, win32con.MOUSEEVENTF_RIGHTUP)
+            try:
+                win32api.mouse_event(down, 0, 0, 0, 0)
+            finally:
+                win32api.mouse_event(up, 0, 0, 0, 0)
+        elif action == 'scroll':
+            win32api.mouse_event(win32con.MOUSEEVENTF_WHEEL, 0, 0, args['delta'] * 120, 0)
+        else:
+            raise RuntimeError('unsupported')
+        return 'input_dispatched_unverified'

@@ -43,7 +43,7 @@ function App() {
         try { const d=JSON.parse(String(raw));
           if(d.type==='pong')pong.current=Date.now();
           if(d.type==='approved'){approved.current=true;clearTimeout(timeout);setReady(true);setStatus('接続済み・PC承認済み');}
-          if(d.type==='result' && pending.current.has(d.seq)){pending.current.delete(d.seq);setResult(`#${d.seq} PC実行${d.ok?'成功':'拒否／失敗'}：${d.code}`);}
+          if(d.type==='result' && pending.current.has(d.seq)){pending.current.delete(d.seq);setResult(`#${d.seq} ${d.ok?(d.code==='input_dispatched_unverified'?'PC入力送出済み（画面結果は未確認）':'PC実行成功'):'PC拒否／失敗'}：${d.code}`);}
           if(d.type==='error')stop(`PCが接続を終了：${d.code}`);
         } catch {stop('不正なPC応答');}
       });
