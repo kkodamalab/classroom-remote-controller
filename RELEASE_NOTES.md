@@ -1,5 +1,9 @@
 実験版。Windows Portable EXE（x64、未署名）。管理者権限・インストール・自動常駐不要。
 
-実機でのPowerPoint/PDF/動画操作、iPhone Safari、Android Chrome、学内ネットワーク・TURNは未検証です。自動テストの詳細と接続設定はREADMEおよびdocs/VALIDATION.mdをご覧ください。
+診断対応版（v0.1.0-alpha.3）。全操作が同じ `execution rejected/failed` になる表示を改善しました。PCに拒否コード・例外分類・安全に加工したスタック・操作時のHWND/PID/EXE・固定/フォーカス判定を表示し、スマホには日本語の対処を表示します。操作の失敗だけで再接続を要求しません。「対象ウィンドウを更新」時の選択消失を修正し、PCの対象・フォーカス・最後の結果とスマホの操作可否・Browser/スクロールの説明を追加しました。対象固定・フォーカス・承認ガードとCOM失敗時のキー送信禁止を維持しています。
+
+ユーザーからiPhone Safari↔EXEの接続・承認成功とPowerPoint/Chromeの連続操作失敗が報告されています。今回の実機連続失敗の根本原因は未確定です。選択消失の不具合は再現・修正しましたが、同じ原因だとは断定していません。診断版で次の操作のコードと比較値を確認できます。
+
+Chrome相当のキー送出・PowerPoint COM呼出しはモック検証です。今回の変更でWindows GUI実機操作の成功を確認したものではありません。iPhone Safari、Android Chrome、学内ネットワーク・TURNの実機受入も未完了です。自動テストの詳細と接続設定はREADMEおよびdocs/VALIDATION.mdをご覧ください。
 
 接続には外部PeerServerと到達可能なICE経路が必要です。初期設定は公共PeerJS CloudとGoogle STUNです。接続・承認失敗を成功として表示しません。切断後はPCでQRを再発行してください。

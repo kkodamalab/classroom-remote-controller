@@ -7,6 +7,15 @@ class Controller:
     target = None
     locked = True
 
+    def __init__(self):
+        self.diagnostics = {}
+
+    def snapshot(self):
+        snapshot = Controller()
+        snapshot.target = tuple(self.target) if self.target else None
+        snapshot.locked = self.locked
+        return snapshot
+
     def windows(self):
         import win32gui, win32process
         result = []
@@ -23,17 +32,36 @@ class Controller:
 
     def check(self, profile):
         import win32gui, win32process
+        context = self.diagnostics
+        context.update(locked=self.locked, checks=context.get('checks', 0) + 1,
+                       target_valid=False, focus_match=False, slideshow_match=False)
+        if self.target:
+            context.update(zip(('target_hwnd', 'target_pid', 'target_exe'), self.target))
         guard = getattr(self, 'guard', None)
         if guard:
             guard()
+        foreground = win32gui.GetForegroundWindow()
+        context['foreground_hwnd'] = foreground
+        foreground_pid = win32process.GetWindowThreadProcessId(foreground)[1] if foreground else 0
+        context['foreground_pid'] = foreground_pid
+        try:
+            context['foreground_exe'] = psutil.Process(foreground_pid).name().lower() if foreground_pid else 'none'
+        except psutil.Error:
+            context['foreground_exe'] = 'unavailable'
         if not self.target:
             raise RuntimeError('no_target')
         hwnd, pid, exe = self.target
-        if not win32gui.IsWindow(hwnd) or win32process.GetWindowThreadProcessId(hwnd)[1] != pid or psutil.Process(pid).name().lower() != exe:
+        if not win32gui.IsWindow(hwnd) or win32process.GetWindowThreadProcessId(hwnd)[1] != pid:
             raise RuntimeError('target_changed')
-        foreground = win32gui.GetForegroundWindow()
+        try:
+            if psutil.Process(pid).name().lower() != exe:
+                raise RuntimeError('target_changed')
+        except psutil.NoSuchProcess:
+            raise RuntimeError('target_changed') from None
+        context['target_valid'] = True
         # PowerPoint slideshow is a separate window in the same process.
-        same_slideshow = profile == 'powerpoint' and win32process.GetWindowThreadProcessId(foreground)[1] == pid and exe == 'powerpnt.exe' and win32gui.GetClassName(foreground) == 'screenClass'
+        same_slideshow = bool(foreground and profile == 'powerpoint' and foreground_pid == pid and exe == 'powerpnt.exe' and win32gui.GetClassName(foreground) == 'screenClass')
+        context.update(focus_match=foreground == hwnd, slideshow_match=same_slideshow)
         if foreground != hwnd and not same_slideshow:
             raise RuntimeError('focus_changed')
         allowed = {
@@ -62,10 +90,12 @@ class Controller:
     def powerpoint(self, action):
         import win32com.client, win32process, win32gui
         app = win32com.client.GetActiveObject('PowerPoint.Application')
+        self.diagnostics['com_target_hwnd'] = int(app.HWND)
         if win32process.GetWindowThreadProcessId(int(app.HWND))[1] != self.target[1]:
             raise RuntimeError('com_target_mismatch')
         target_window = next((app.Windows(i) for i in range(1, app.Windows.Count + 1) if int(app.Windows(i).HWND) == self.target[0]), None)
         target_show = next((app.SlideShowWindows(i) for i in range(1, app.SlideShowWindows.Count + 1) if int(app.SlideShowWindows(i).HWND) == self.target[0]), None)
+        self.diagnostics.update(com_window_match=target_window is not None, com_show_match=target_show is not None)
         if target_window is None and target_show is None:
             raise RuntimeError('com_window_mismatch')
         presentation = (target_window or target_show).Presentation
@@ -73,6 +103,8 @@ class Controller:
         foreground = win32gui.GetForegroundWindow()
         if foreground != self.target[0] and not any(int(show.HWND) == foreground for show in shows):
             raise RuntimeError('com_presentation_mismatch')
+        # COM lookup can block; recheck authorization and focus before invoking it.
+        self.check('powerpoint')
         if action == 'start':
             presentation.SlideShowSettings.Run()
         else:
@@ -95,10 +127,11 @@ class Controller:
                 elif action == 'blackout': view.State = 1 if view.State == 3 else 3
         return 'com_completed'
 
-    def execute(self, profile, action, args, authorize=None):
+    def execute(self, profile, action, args, authorize=None, diagnostics=None):
         # Freeze the local target selection for the entire command.
-        snapshot = Controller()
-        snapshot.target, snapshot.locked, snapshot.guard = self.target, self.locked, authorize
+        snapshot = self.snapshot()
+        snapshot.guard = authorize
+        snapshot.diagnostics = diagnostics if diagnostics is not None else {}
         return snapshot._execute(profile, action, args)
 
     def _execute(self, profile, action, args):

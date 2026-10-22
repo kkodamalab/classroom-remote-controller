@@ -21,6 +21,21 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run build
+      - name: Install isolated UI test tooling
+        run: npm install --prefix "$RUNNER_TEMP/browser-tools" --no-save --package-lock=false playwright@1.62.1
+      - name: Browser diagnostics contract (mocked PeerJS)
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+          CHROMIUM_PATH: /usr/bin/google-chrome
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 --strictPort > "$RUNNER_TEMP/vite.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:5173/classroom-remote-controller/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node ../tests/browser_diagnostics.cjs
   windows:
     runs-on: windows-latest
     steps:
@@ -31,7 +46,17 @@ jobs:
           cache: pip
           cache-dependency-path: desktop/requirements.txt
       - run: python -m pip install -r desktop/requirements.txt pytest pyinstaller
-      - run: python -m pytest tests -q
+      - name: Python and Qt regression tests
+        run: |
+          python -m pytest tests -q 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP\pytest.txt"
+          $testExit = $LASTEXITCODE
+          if ($testExit -ne 0) {
+            $details = Get-Content "$env:RUNNER_TEMP\pytest.txt" -Raw
+            if ($details.Length -gt 12000) { $details = $details.Substring($details.Length - 12000) }
+            $details = $details.Replace('%', '%25').Replace("`r", '%0D').Replace("`n", '%0A')
+            Write-Output "::error title=Windows pytest failure::$details"
+          }
+          exit $testExit
       - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
       - name: Portable startup smoke test
         run: |

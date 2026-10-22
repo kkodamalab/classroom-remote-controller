@@ -7,10 +7,11 @@ import aiohttp
 from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCSessionDescription
 from aiortc.sdp import candidate_from_sdp
 from desktop.security import Bucket, Rejected
+from desktop.diagnostics import ERRORS, classify, context_text
 
 
 class Transport:
-    def __init__(self, session, config, execute, pending, changed, log):
+    def __init__(self, session, config, execute, pending, changed, log, prepare=None, result=None):
         self.session, self.config, self.execute = session, config, execute
         self.pending, self.changed, self.log = pending, changed, log
         self.http = self.ws = self.pc = self.channel = None
@@ -22,6 +23,7 @@ class Transport:
         self.opened = asyncio.Event()
         self.candidates = []
         self.executing = False
+        self.prepare, self.result = prepare, result
 
     async def start(self):
         host = self.config.get('host', '0.peerjs.com')
@@ -128,7 +130,8 @@ class Transport:
         except Rejected as exc:
             code = str(exc)
             if seq is not None and self.session.approved:
-                self.send({'type': 'result', 'seq': seq, 'ok': False, 'code': code})
+                self.send({'type': 'result', 'seq': seq, 'ok': False, 'code': code, 'message': ERRORS.get(code, ERRORS['rejected'])})
+                self.log(f'#{seq}: category=rejected code={code}')
             else:
                 self.session.revoke()
                 asyncio.create_task(self.close(code))
@@ -137,32 +140,42 @@ class Transport:
             asyncio.create_task(self.close('invalid_message'))
 
     async def run_command(self, seq, profile, action, args):
+        context = {}
+        ok, code = False, 'unexpected_error'
         def work():
             import sys
             if sys.platform == 'win32':
                 import pythoncom
                 pythoncom.CoInitialize()
             try:
-                self.session.valid()
-                return self.execute(profile, action, args)
+                self.session.authorize_operation()
+                return execute(profile, action, args)
             finally:
                 if sys.platform == 'win32':
                     pythoncom.CoUninitialize()
         try:
+            # Capture selection/lock state on the UI event loop, never read Qt
+            # widgets or mutable UI selection from the executor thread.
+            execute = self.prepare(context) if self.prepare else self.execute
             code = await asyncio.to_thread(work)
+            ok = True
             if not self.session.revoked:
                 self.send({'type': 'result', 'seq': seq, 'ok': True, 'code': code})
-                self.log(f'#{seq} {profile}/{action}: {code}')
+                self.log(f'#{seq} {profile}/{action}: {code} {context_text(context)}')
         except asyncio.CancelledError:
-            pass
-        except Exception:
-            self.send({'type': 'result', 'seq': seq, 'ok': False, 'code': 'target_focus_or_execution_failed'})
-            self.log(f'#{seq}: execution rejected/failed')
+            return
+        except Exception as exc:
+            code, detail = classify(exc)
+            if not self.session.revoked:
+                self.send({'type': 'result', 'seq': seq, 'ok': False, 'code': code, 'message': ERRORS[code]})
+            self.log(f'#{seq} {profile}/{action}: {code} {detail} {context_text(context)}')
         finally:
             self.executing = False
             current = asyncio.current_task()
             if current in self.tasks:
                 self.tasks.remove(current)
+            if self.result and not self.session.revoked:
+                self.result(seq, profile, action, ok, code, context)
 
     def approve(self):
         if not self.channel or self.channel.readyState != 'open':

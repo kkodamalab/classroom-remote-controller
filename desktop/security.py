@@ -47,6 +47,12 @@ class Session:
         if self.revoked or self.clock() >= self.expires:
             raise Rejected('session_expired')
 
+    def authorize_operation(self):
+        """Recheck approval on the executor thread immediately before OS/COM use."""
+        self.valid()
+        if not self.approved:
+            raise Rejected('not_approved')
+
     def hello(self, data):
         self.valid()
         if set(data) != {'type', 'token', 'device'} or data['type'] != 'hello':
@@ -71,9 +77,7 @@ class Session:
         self.revoked, self.approved, self.token = True, False, ''
 
     def command(self, data):
-        self.valid()
-        if not self.approved:
-            raise Rejected('not_approved')
+        self.authorize_operation()
         if set(data) != {'type', 'seq', 'profile', 'action', 'args'} or data['type'] != 'command':
             raise Rejected('schema')
         seq = data['seq']
