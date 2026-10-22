@@ -131,6 +131,10 @@ def test_snapshot_does_not_follow_ui_selection(windows):
 
 @pytest.fixture
 def native_errors(monkeypatch):
+    if sys.platform == 'win32':
+        # pythoncom's loader calls pywintypes.__import_pywin32_system_module__.
+        # Load the real DLL before replacing only the exception types below.
+        import pythoncom
     class ComError(Exception):
         hresult = -2147221008
     class Win32Error(Exception):
