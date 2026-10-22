@@ -15,6 +15,7 @@ $report = Get-Content $ReportPath -Raw -Encoding utf8 | ConvertFrom-Json
 if ($report.status -ne 'passed' -or -not $report.frozen -or $report.platform -ne 'win32') { throw 'Expected a passed Windows frozen-process report' }
 if ($report.version -ne $ExpectedVersion -or $report.title -notlike "*v$ExpectedVersion*") { throw 'Wrong EXE version/title' }
 if ($report.cases.Count -ne 5) { throw 'Missing diagnostic test cases' }
+if ($report.worker_com_initializations -ne 5 -or -not $report.worker_com_balanced) { throw 'COM worker lifecycle was not verified' }
 foreach ($case in $report.cases) {
   if ($case.code -ne $case.wire_code -or $case.pc_log -notlike "*$($case.code)*") { throw 'Diagnostic code mismatch' }
 }

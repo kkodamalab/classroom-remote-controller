@@ -67,6 +67,8 @@ def test_portable_diagnostic_source_contract(window, monkeypatch, tmp_path):
     report=json.loads(output.read_text(encoding='utf-8'))
     assert report['version']==VERSION and report['status']=='passed'
     assert len(report['cases'])==5 and not report['frozen']
+    assert report['worker_com_initializations']==(5 if sys.platform=='win32' else 0)
+    assert report['worker_com_balanced']
     assert 'PRIVATE_SENTINEL' not in output.read_text(encoding='utf-8')
 
 

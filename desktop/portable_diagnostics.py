@@ -2,6 +2,7 @@
 import asyncio
 import json
 import sys
+import threading
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -21,6 +22,15 @@ async def run(window, report_path):
     assert APP_IDENTITY in window.windowTitle()
     assert APP_IDENTITY in window.logs.toPlainText()
     cases = []
+    ui_thread = threading.get_ident()
+    com_calls = []
+    native_initialize, native_uninitialize = pythoncom.CoInitialize, pythoncom.CoUninitialize
+    def initialize():
+        native_initialize()
+        com_calls.append(('initialize', threading.get_ident()))
+    def uninitialize():
+        native_uninitialize()
+        com_calls.append(('uninitialize', threading.get_ident()))
     foreground = [100]
     gui = SimpleNamespace(IsWindow=lambda hwnd: hwnd == 100,
                           GetForegroundWindow=lambda: foreground[0],
@@ -35,7 +45,9 @@ async def run(window, report_path):
         ('unexpected_error', ValueError('PRIVATE_SENTINEL')),
     ]
     with patch.dict(sys.modules, {'win32gui': gui, 'win32process': process}), \
-         patch('desktop.controls.psutil.Process', lambda _: SimpleNamespace(name=lambda:'powerpnt.exe')):
+         patch('desktop.controls.psutil.Process', lambda _: SimpleNamespace(name=lambda:'powerpnt.exe')), \
+         patch.object(pythoncom, 'CoInitialize', initialize), \
+         patch.object(pythoncom, 'CoUninitialize', uninitialize):
         for seq, (expected, failure) in enumerate(failures, 1):
             session = Session()
             session.hello({'type':'hello', 'token':session.token, 'device':'offline self-test'})
@@ -66,8 +78,13 @@ async def run(window, report_path):
             assert expected in window.last_result.text()
             cases.append({'code':expected, 'pc_log':log_line, 'wire_code':messages[-1]['code'],
                           'last_result':window.last_result.text(), 'context':contexts[-1]})
+    assert len(com_calls) == (10 if sys.platform == 'win32' else 0)
+    assert all(tid != ui_thread for _, tid in com_calls)
+    for index in range(0, len(com_calls), 2):
+        assert com_calls[index][0] == 'initialize' and com_calls[index+1][0] == 'uninitialize'
+        assert com_calls[index][1] == com_calls[index+1][1]
     report = {'version':VERSION, 'title':window.windowTitle(), 'diagnostics_version':DIAGNOSTICS_VERSION,
               'frozen':bool(getattr(sys, 'frozen', False)), 'platform':sys.platform,
-              'native_com_initialized':pythoncom is not None, 'cases':cases,
+              'worker_com_initializations':len(com_calls)//2, 'worker_com_balanced':True, 'cases':cases,
               'os_input':'mocked; no real PowerPoint/Windows input executed', 'status':'passed'}
     Path(report_path).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')
