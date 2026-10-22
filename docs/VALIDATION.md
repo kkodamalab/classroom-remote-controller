@@ -1,5 +1,15 @@
 # 検証記録
 
+## 2026-10-22 JST：alpha.3の配布物監査とalpha.4
+
+alpha.3のGitHub ReleaseからEXEを再取得。SHA256 `c0c04a5c49edf928188aeb5f728d40d9b5a56a5bd2cbdcc827117369919d9c2e` を照合し、PyInstallerのPYZ内のdesktop.transport/controls/diagnostics/uiのコード定数を再帰検査しました。旧 `execution rejected/failed` は実行コードに存在せず、診断モジュール・ネイティブ番号/スタック・対象/前面情報・最終結果表示を確認しました。監査結果はALPHA3_AUDIT.json。圧縮EXEへの単純な文字列検索で判定したものではありません。
+
+添付画面にはalpha.3の診断UIが見えず旧EXE起動の可能性がありますが、実機ファイルを取得していないため断定しません。PowerPointの実機原因は未確定のままです。
+
+alpha.4はタイトル/起動画面/ログ/Windowsファイル情報/ファイル名にバージョンを表示。COM失敗段階も記録します。Windows CIはビルド済みEXEでオフライン診断テストを実行し、ReleaseではアップロードしたEXEの再ダウンロード・SHA256照合後、同じEXEを再起動して5種類の注入失敗コードを検証してから公開します。レポートのfrozen=true / platform=win32 / version / casesで結果を確認できます。実PowerPoint操作の成功とは区別します。
+
+Python/Qtのソーステストは既存58件を維持し計60件。Webのブラウザ契約テストにはPC版番号、感度0.5倍と4倍の同一ドラッグの移動量比較、イベント集約、40px上限、設定保存を追加しています。iPhone Safari実機のタッチ感覚と実PowerPoint操作は未検証です。
+
 ## 2026-10-22 JST：操作失敗の診断対応
 
 実機報告ではiPhone Safari→Portable EXEのWebRTC接続・PC承認・操作要求到達は成功し、PowerPoint/Chromeの全操作が拒否されました。実機の根本原因は未確定です。共通ガード、HWND/PID/EXE比較、ワーカースレッド、COM初期化・文書/スライドショー識別を調査しました。ワーカーのCOM初期化は既存コードにもあり、未初期化が原因だとする証拠はありません。

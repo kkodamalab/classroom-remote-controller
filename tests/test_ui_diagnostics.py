@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication
 from desktop.controls import Controller
 from desktop.security import Session
 from desktop.ui import Window
+from desktop.version import VERSION, APP_IDENTITY
 
 
 @pytest.fixture
@@ -38,6 +39,35 @@ def test_refresh_retains_same_hwnd_pid_despite_title_change(window):
     w.refresh()
     assert tuple(w.controller.target) == (100, 10, 'chrome.exe')
     assert 'New title' in w.targets.currentText()
+
+
+def test_startup_identity_in_title_label_and_log(window):
+    w, _ = window
+    assert APP_IDENTITY == w.windowTitle()
+    assert VERSION in w.identity.text()
+    assert APP_IDENTITY in w.logs.toPlainText()
+
+
+def test_portable_diagnostic_source_contract(window, monkeypatch, tmp_path):
+    import asyncio
+    import json
+    from desktop.portable_diagnostics import run
+    class ComFailure(Exception):
+        hresult = -2147221021
+    class WinFailure(Exception):
+        winerror = 5
+    monkeypatch.setitem(sys.modules, 'pythoncom', SimpleNamespace(CoInitialize=lambda:None, CoUninitialize=lambda:None))
+    monkeypatch.setitem(sys.modules, 'pywintypes', SimpleNamespace(com_error=ComFailure, error=WinFailure))
+    client=SimpleNamespace(GetActiveObject=lambda _:None)
+    monkeypatch.setitem(sys.modules, 'win32com', SimpleNamespace(client=client))
+    monkeypatch.setitem(sys.modules, 'win32com.client', client)
+    w, _ = window
+    output=tmp_path/'report.json'
+    asyncio.run(run(w, output))
+    report=json.loads(output.read_text(encoding='utf-8'))
+    assert report['version']==VERSION and report['status']=='passed'
+    assert len(report['cases'])==5 and not report['frozen']
+    assert 'PRIVATE_SENTINEL' not in output.read_text(encoding='utf-8')
 
 
 def test_recreated_window_requires_explicit_reselection(window):

@@ -14,16 +14,44 @@ jobs:
           python-version: '3.12'
       - run: python -m pip install -r desktop/requirements.txt pytest pyinstaller
       - run: python -m pytest tests -q
-      - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Generate application version metadata
+        run: |
+          python -m tools.windows_version
+          python -c "from desktop.version import VERSION; print('APP_VERSION='+VERSION)" >> $env:GITHUB_ENV
+      - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --version-file build/windows-version.txt --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Test diagnostics inside the built EXE
+        run: ./tools/test_portable.ps1 -ExePath dist/ClassroomRemoteController.exe -ReportPath "$env:RUNNER_TEMP/portable-diagnostics.json" -ExpectedVersion $env:APP_VERSION
       - name: Portable startup smoke test
         run: |
           $testProcess = Start-Process -FilePath dist/ClassroomRemoteController.exe -ArgumentList '--self-test' -WindowStyle Hidden -PassThru
           if (-not $testProcess.WaitForExit(60000)) { $testProcess.Kill(); throw 'Portable startup timed out' }
           if ($testProcess.ExitCode -ne 0) { throw "Portable startup failed: $($testProcess.ExitCode)" }
+      - name: Name the release EXE and retain diagnostic evidence
+        run: |
+          if ($env:GITHUB_REF_NAME -ne "v$env:APP_VERSION") { throw 'Tag/application version mismatch' }
+          Move-Item dist/ClassroomRemoteController.exe "dist/ClassroomRemoteController-v$env:APP_VERSION.exe"
+          Copy-Item "$env:RUNNER_TEMP/portable-diagnostics.json" dist/portable-diagnostics.json
       - name: Publish prerelease
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          Get-FileHash dist/ClassroomRemoteController.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  ClassroomRemoteController.exe" } | Set-Content dist/SHA256SUMS.txt
-          gh release create $env:GITHUB_REF_NAME dist/ClassroomRemoteController.exe dist/SHA256SUMS.txt desktop/config.example.json --prerelease --title "$env:GITHUB_REF_NAME - classroom pilot" --notes-file RELEASE_NOTES.md
+          Get-FileHash "dist/ClassroomRemoteController-v$env:APP_VERSION.exe" -Algorithm SHA256 | ForEach-Object { "$($_.Hash)  ClassroomRemoteController-v$env:APP_VERSION.exe" } | Set-Content dist/SHA256SUMS.txt
+          gh release create $env:GITHUB_REF_NAME "dist/ClassroomRemoteController-v$env:APP_VERSION.exe" dist/SHA256SUMS.txt dist/portable-diagnostics.json docs/ALPHA3_AUDIT.json desktop/config.example.json --draft --prerelease --title "$env:GITHUB_REF_NAME - versioned diagnostics and touchpad gain" --notes-file RELEASE_NOTES.md
+      - name: Verify downloaded draft EXE and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $downloadDir = "$env:RUNNER_TEMP/published-release"
+          gh release download $env:GITHUB_REF_NAME --dir $downloadDir --pattern "ClassroomRemoteController-v$env:APP_VERSION.exe" --pattern SHA256SUMS.txt
+          if ($LASTEXITCODE -ne 0) { throw 'Release asset download failed' }
+          $exe = "$downloadDir/ClassroomRemoteController-v$env:APP_VERSION.exe"
+          $actual = (Get-FileHash $exe -Algorithm SHA256).Hash
+          $built = (Get-FileHash "dist/ClassroomRemoteController-v$env:APP_VERSION.exe" -Algorithm SHA256).Hash
+          $expected = ((Get-Content "$downloadDir/SHA256SUMS.txt" -Raw).Trim() -split '\s+')[0]
+          if ($actual -ne $built -or $actual -ne $expected) { throw 'Release asset checksum mismatch' }
+          ./tools/test_portable.ps1 -ExePath $exe -ReportPath "$env:RUNNER_TEMP/published-diagnostics.json" -ExpectedVersion $env:APP_VERSION
+          gh release upload $env:GITHUB_REF_NAME "$env:RUNNER_TEMP/published-diagnostics.json"
+          if ($LASTEXITCODE -ne 0) { throw 'Diagnostic evidence upload failed' }
+          gh release edit $env:GITHUB_REF_NAME --draft=false
+          if ($LASTEXITCODE -ne 0) { throw 'Release publication failed' }
 

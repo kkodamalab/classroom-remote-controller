@@ -57,7 +57,13 @@ jobs:
             Write-Output "::error title=Windows pytest failure::$details"
           }
           exit $testExit
-      - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Generate application version metadata
+        run: |
+          python -m tools.windows_version
+          python -c "from desktop.version import VERSION; print('APP_VERSION='+VERSION)" >> $env:GITHUB_ENV
+      - run: python -m PyInstaller --noconfirm --paths . --clean --onefile --windowed --name ClassroomRemoteController --version-file build/windows-version.txt --collect-all aiortc --collect-all aioice --hidden-import win32timezone --hidden-import pythoncom --hidden-import win32com.client desktop/main.py
+      - name: Test diagnostics inside the built EXE
+        run: ./tools/test_portable.ps1 -ExePath dist/ClassroomRemoteController.exe -ReportPath "$env:RUNNER_TEMP/portable-diagnostics.json" -ExpectedVersion $env:APP_VERSION
       - name: Portable startup smoke test
         run: |
           $testProcess = Start-Process -FilePath dist/ClassroomRemoteController.exe -ArgumentList '--self-test' -WindowStyle Hidden -PassThru
