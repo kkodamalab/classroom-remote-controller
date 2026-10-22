@@ -89,22 +89,28 @@ class Controller:
 
     def powerpoint(self, action):
         import win32com.client, win32process, win32gui
+        self.diagnostics['com_stage'] = 'get_active_object'
         app = win32com.client.GetActiveObject('PowerPoint.Application')
+        self.diagnostics['com_stage'] = 'application_identity'
         self.diagnostics['com_target_hwnd'] = int(app.HWND)
         if win32process.GetWindowThreadProcessId(int(app.HWND))[1] != self.target[1]:
             raise RuntimeError('com_target_mismatch')
+        self.diagnostics['com_stage'] = 'document_windows'
         target_window = next((app.Windows(i) for i in range(1, app.Windows.Count + 1) if int(app.Windows(i).HWND) == self.target[0]), None)
         target_show = next((app.SlideShowWindows(i) for i in range(1, app.SlideShowWindows.Count + 1) if int(app.SlideShowWindows(i).HWND) == self.target[0]), None)
         self.diagnostics.update(com_window_match=target_window is not None, com_show_match=target_show is not None)
         if target_window is None and target_show is None:
             raise RuntimeError('com_window_mismatch')
+        self.diagnostics['com_stage'] = 'presentation_identity'
         presentation = (target_window or target_show).Presentation
         shows = [app.SlideShowWindows(i) for i in range(1, app.SlideShowWindows.Count + 1) if app.SlideShowWindows(i).Presentation.FullName == presentation.FullName]
         foreground = win32gui.GetForegroundWindow()
         if foreground != self.target[0] and not any(int(show.HWND) == foreground for show in shows):
             raise RuntimeError('com_presentation_mismatch')
         # COM lookup can block; recheck authorization and focus before invoking it.
+        self.diagnostics['com_stage'] = 'foreground_guard'
         self.check('powerpoint')
+        self.diagnostics['com_stage'] = 'execute'
         if action == 'start':
             presentation.SlideShowSettings.Run()
         else:

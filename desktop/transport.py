@@ -8,6 +8,7 @@ from aiortc import RTCPeerConnection, RTCConfiguration, RTCIceServer, RTCSession
 from aiortc.sdp import candidate_from_sdp
 from desktop.security import Bucket, Rejected
 from desktop.diagnostics import ERRORS, classify, context_text
+from desktop.version import VERSION, DIAGNOSTICS_VERSION
 
 
 class Transport:
@@ -181,7 +182,7 @@ class Transport:
         if not self.channel or self.channel.readyState != 'open':
             raise Rejected('channel_closed')
         self.session.approve()
-        self.send({'type': 'approved'})
+        self.send({'type': 'approved', 'version': VERSION, 'diagnostics_version': DIAGNOSTICS_VERSION})
         self.changed('接続済み・承認済み（対象アプリを前面にしてください）')
 
     async def watch(self):

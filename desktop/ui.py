@@ -10,12 +10,13 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QMessageBox
 from desktop.security import Session
 from desktop.diagnostics import ERRORS, classify, context_text
+from desktop.version import APP_IDENTITY, DIAGNOSTICS_VERSION
 
 
 class Window(QMainWindow):
-    def __init__(self):
+    def __init__(self, autostart=True):
         super().__init__()
-        self.setWindowTitle('Classroom Remote Controller')
+        self.setWindowTitle(APP_IDENTITY)
         self.resize(580, 820)
         self.transport = None
         self.session = None
@@ -24,6 +25,7 @@ class Window(QMainWindow):
         self.setStyleSheet('QWidget {background:#101b29;color:#edf3f5;font-size:14px} QPushButton,QComboBox {padding:12px;background:#23374e;border-radius:6px} QPlainTextEdit {background:#09121d}')
         root = QWidget(); self.setCentralWidget(root); layout = QVBoxLayout(root)
         self.status = QLabel('セッション準備中'); layout.addWidget(self.status)
+        self.identity = QLabel(f'{APP_IDENTITY} ／ 診断機能 v{DIAGNOSTICS_VERSION}'); layout.addWidget(self.identity)
         self.target_status = QLabel('対象：未選択'); self.target_status.setWordWrap(True); layout.addWidget(self.target_status)
         self.focus_status = QLabel('操作不可：対象を選択してください'); self.focus_status.setWordWrap(True); layout.addWidget(self.focus_status)
         self.last_result = QLabel('最後の操作：未実行（接続成功と操作成功は別です）'); self.last_result.setWordWrap(True); layout.addWidget(self.last_result)
@@ -38,13 +40,15 @@ class Window(QMainWindow):
         reject = QPushButton('拒否 / 緊急切断'); reject.setStyleSheet('background:#913d50;font-weight:bold'); reject.clicked.connect(self.emergency); layout.addWidget(reject)
         renew = QPushButton('新しいQRを発行'); renew.clicked.connect(lambda: asyncio.create_task(self.new_session())); layout.addWidget(renew)
         self.logs = QPlainTextEdit(); self.logs.setReadOnly(True); self.logs.setMaximumBlockCount(200); layout.addWidget(self.logs)
+        self.log(f'{APP_IDENTITY} diagnostics={DIAGNOSTICS_VERSION} 起動')
         from desktop.controls import Controller
         self.controller = Controller()
         self.refresh()
         self.focus_timer = QTimer(self)
         self.focus_timer.timeout.connect(self.update_focus)
-        self.focus_timer.start(750)
-        QTimer.singleShot(0, lambda: asyncio.create_task(self.new_session()))
+        if autostart:
+            self.focus_timer.start(750)
+            QTimer.singleShot(0, lambda: asyncio.create_task(self.new_session()))
 
     def log(self, message):
         self.logs.appendPlainText(message)

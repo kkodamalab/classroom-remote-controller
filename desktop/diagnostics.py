@@ -90,4 +90,6 @@ def context_text(context):
         value = context.get(key, '')
         if isinstance(value, str) and re.fullmatch(r'[a-zA-Z0-9_.-]{1,64}', value):
             fields.append(f'{key}={value}')
+    if context.get('com_stage') in {'get_active_object', 'application_identity', 'document_windows', 'presentation_identity', 'foreground_guard', 'execute'}:
+        fields.append(f"com_stage={context['com_stage']}")
     return ' '.join(fields)

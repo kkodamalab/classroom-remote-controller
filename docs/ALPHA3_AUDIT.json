@@ -1,0 +1,36 @@
+{
+  "sha256": "c0c04a5c49edf928188aeb5f728d40d9b5a56a5bd2cbdcc827117369919d9c2e",
+  "modules": {
+    "desktop.transport": {
+      "old_failure_text_present": false,
+      "markers": [
+        "category=rejected"
+      ]
+    },
+    "desktop.controls": {
+      "old_failure_text_present": false,
+      "markers": [
+        "target_hwnd",
+        "foreground_hwnd"
+      ]
+    },
+    "desktop.diagnostics": {
+      "old_failure_text_present": false,
+      "markers": [
+        "native=",
+        "stack=",
+        "target_hwnd",
+        "foreground_hwnd"
+      ]
+    },
+    "desktop.ui": {
+      "old_failure_text_present": false,
+      "markers": [
+        "target_hwnd",
+        "foreground_hwnd",
+        "target_status:",
+        "最後の操作"
+      ]
+    }
+  }
+}

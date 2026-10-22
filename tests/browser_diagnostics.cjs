@@ -41,7 +41,7 @@ export default class Peer extends Events {
     await page.getByRole('button',{name:'接続を開始',exact:true}).click();
     await page.getByText('PCで接続を承認してください',{exact:true}).waitFor();
     assert(await next.isDisabled());
-    await page.evaluate(()=>window.__channel.emit('data',JSON.stringify({type:'approved'})));
+    await page.evaluate(()=>window.__channel.emit('data',JSON.stringify({type:'approved',version:'0.1.0-alpha.4'})));
     for(const code of ['focus_changed','target_changed','profile_mismatch','com_error','win32_error','unexpected_error']) {
       await page.waitForTimeout(100); // stay outside the UI's 80ms command throttle
       await page.evaluate(value=>window.__code=value,code);
@@ -62,13 +62,35 @@ export default class Peer extends Events {
     }
     await page.getByRole('button',{name:'PC',exact:true}).click();
     await page.getByText('スクロールはマウスホイールです。',{exact:false}).waitFor();
+    await page.getByText('接続先PC v0.1.0-alpha.4',{exact:true}).waitFor();
+    const slider=page.getByRole('slider',{name:'タッチパッド感度'});
+    async function dragDistance() {
+      const pad=page.getByLabel('相対移動タッチパッド');
+      await pad.scrollIntoViewIfNeeded();
+      const box=await pad.boundingBox();
+      await page.evaluate(()=>window.__sent=[]);
+      await page.mouse.move(box.x+50,box.y+50);await page.mouse.down();
+      for(let i=1;i<=10;i++)await page.mouse.move(box.x+50+i*2,box.y+50);
+      await page.mouse.up();await page.waitForTimeout(400);
+      const moves=await page.evaluate(()=>window.__sent.filter(d=>d.type==='command'&&d.action==='move'));
+      assert(moves.length>0);
+      assert(moves.every(d=>Math.abs(d.args.dx)<=40&&Math.abs(d.args.dy)<=40));
+      return moves.reduce((sum,d)=>sum+d.args.dx,0);
+    }
+    await slider.focus();await slider.press('Home');
+    const slow=await dragDistance();
+    await slider.focus();await slider.press('End');
+    const fast=await dragDistance();
+    assert.equal(slow,10);assert.equal(fast,80);
     await page.getByRole('button',{name:'緊急切断',exact:true}).click();
     assert(await page.getByRole('button',{name:'左クリック',exact:true}).isDisabled());
     await page.goto(base+'?demo=1');
     await page.getByRole('button',{name:'接続を開始',exact:true}).click();
     await page.getByRole('button',{name:'次へ →',exact:true}).click();
     await page.getByText('デモ表示：powerpoint / next（未実行）',{exact:true}).waitFor();
+    await page.getByRole('button',{name:'PC',exact:true}).click();
+    assert.equal(await page.getByRole('slider',{name:'タッチパッド感度'}).inputValue(),'4');
     assert.deepEqual(errors, []);
-    console.log('PASS: mocked PeerJS UI: QR clearing, approval gating, six Japanese error codes, no private response text, no reconnect on execution failure, focus gating/recovery, instructions, tabs/mobile width, emergency disconnect, demo');
+    console.log('PASS: mocked PeerJS UI: QR clearing, approval gating, six Japanese error codes, no private response text, no reconnect on execution failure, focus gating/recovery, instructions, tabs/mobile width, emergency disconnect, demo, PC version, 0.5x/4x sensitivity, coalesced movement, safe bounds and persistence');
   } finally { await browser.close(); }
 })().catch(error=>{console.error(error);process.exitCode=1;});
