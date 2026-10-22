@@ -21,6 +21,21 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - run: npm ci
       - run: npm run build
+      - name: Install isolated UI test tooling
+        run: npm install --prefix "$RUNNER_TEMP/browser-tools" --no-save --package-lock=false playwright@1.62.1
+      - name: Browser diagnostics contract (mocked PeerJS)
+        env:
+          NODE_PATH: ${{ runner.temp }}/browser-tools/node_modules
+          CHROMIUM_PATH: /usr/bin/google-chrome
+        run: |
+          npm run dev -- --host 127.0.0.1 --port 5173 --strictPort > "$RUNNER_TEMP/vite.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:5173/classroom-remote-controller/ > /dev/null; then break; fi
+            sleep 1
+          done
+          node ../tests/browser_diagnostics.cjs
   windows:
     runs-on: windows-latest
     steps:

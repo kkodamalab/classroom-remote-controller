@@ -9,6 +9,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QMessageBox
 from desktop.security import Session
+from desktop.diagnostics import ERRORS, classify
 
 
 class Window(QMainWindow):
@@ -22,6 +23,9 @@ class Window(QMainWindow):
         self.setStyleSheet('QWidget {background:#101b29;color:#edf3f5;font-size:14px} QPushButton,QComboBox {padding:12px;background:#23374e;border-radius:6px} QPlainTextEdit {background:#09121d}')
         root = QWidget(); self.setCentralWidget(root); layout = QVBoxLayout(root)
         self.status = QLabel('セッション準備中'); layout.addWidget(self.status)
+        self.target_status = QLabel('対象：未選択'); self.target_status.setWordWrap(True); layout.addWidget(self.target_status)
+        self.focus_status = QLabel('操作不可：対象を選択してください'); self.focus_status.setWordWrap(True); layout.addWidget(self.focus_status)
+        self.last_result = QLabel('最後の操作：未実行（接続成功と操作成功は別です）'); self.last_result.setWordWrap(True); layout.addWidget(self.last_result)
         self.qr = QLabel(); layout.addWidget(self.qr)
         self.device = QLabel('端末：未接続'); layout.addWidget(self.device)
         self.targets = QComboBox(); layout.addWidget(self.targets)
@@ -36,20 +40,49 @@ class Window(QMainWindow):
         from desktop.controls import Controller
         self.controller = Controller()
         self.refresh()
+        self.focus_timer = QTimer(self)
+        self.focus_timer.timeout.connect(self.update_focus)
+        self.focus_timer.start(750)
         QTimer.singleShot(0, lambda: asyncio.create_task(self.new_session()))
 
     def log(self, message):
         self.logs.appendPlainText(message)
 
     def refresh(self):
+        previous = tuple(self.controller.target) if self.controller.target else None
+        self.targets.blockSignals(True)
         self.targets.clear()
         self.targets.addItem('対象ウィンドウを選択してください', None)
         for hwnd, title, exe, pid in self.controller.windows():
             self.targets.addItem(f'{exe} — {title[:80]}', (hwnd, pid, exe))
+            if previous == (hwnd, pid, exe):
+                self.targets.setCurrentIndex(self.targets.count() - 1)
+        self.targets.blockSignals(False)
+        self.select_target()
 
     def select_target(self, *_):
         self.controller.target = self.targets.currentData()
         self.controller.locked = self.lock.isChecked()
+        self.update_focus()
+
+    def update_focus(self):
+        snapshot = self.controller.snapshot()
+        target = snapshot.target
+        self.target_status.setText(f'対象：{target[2]} HWND={target[0]} PID={target[1]} ／ 固定={snapshot.locked}' if target else '対象：未選択')
+        code = None
+        try:
+            snapshot.check('powerpoint' if target and target[2] == 'powerpnt.exe' else 'mouse')
+        except Exception as exc:
+            code, _ = classify(exc)
+        approved = bool(self.session and self.session.approved and not self.session.revoked)
+        context = snapshot.diagnostics
+        self.focus_status.setText(('操作可能（画面結果は各操作後に確認）' if approved and code is None else '操作不可：' + (ERRORS[code] if code else 'PCの接続承認が必要です。')) + f"\n前面 HWND={context.get('foreground_hwnd')} PID={context.get('foreground_pid')} ／ 一致={context.get('focus_match')} スライドショー一致={context.get('slideshow_match')}")
+        if self.transport and approved:
+            self.transport.send({'type': 'control_state', 'available': code is None, 'code': code or 'ready', 'locked': snapshot.locked})
+
+    def operation_result(self, seq, profile, action, ok, code, context):
+        descriptions = {'com_completed': 'COM操作完了', 'input_dispatched_unverified': '入力送出済み（画面結果未確認）'}
+        self.last_result.setText(f'最後の操作：#{seq} {profile}/{action} {descriptions.get(code, ERRORS.get(code, code))} [{code}]')
 
     async def new_session(self):
         if self.renewing:
@@ -73,8 +106,13 @@ class Window(QMainWindow):
             self.config = config
             from desktop.transport import Transport
             session = self.session
-            execute = lambda profile, action, args: self.controller.execute(profile, action, args, authorize=session.valid)
-            self.transport = Transport(session, config, execute, self.pending, self.changed, self.log)
+            def prepare(context):
+                snapshot = self.controller.snapshot()
+                if snapshot.target:
+                    context.update(zip(('target_hwnd', 'target_pid', 'target_exe'), snapshot.target))
+                context['locked'] = snapshot.locked
+                return lambda profile, action, args: snapshot.execute(profile, action, args, authorize=session.authorize_operation, diagnostics=context)
+            self.transport = Transport(session, config, None, self.pending, self.changed, self.log, prepare=prepare, result=self.operation_result)
             self.status.setText('シグナリング接続中…')
             await self.transport.start()
             if self.session.revoked:
@@ -91,10 +129,12 @@ class Window(QMainWindow):
 
     def pending(self, device):
         self.device.setText(f'端末（自己申告）：{device}')
-        self.approval.setEnabled(True)
+        self.approval.setEnabled(bool(self.session and self.session.device and not self.session.approved and not self.session.revoked))
         self.status.setText('接続承認待ち。手元のスマホであることを確認してください')
 
     def approve(self):
+        if not self.session or self.session.revoked or self.session.approved or not self.session.device:
+            return
         if not self.controller.target:
             QMessageBox.information(self, '対象の選択', '先に操作対象ウィンドウを選択してください。'); return
         try:
@@ -106,6 +146,7 @@ class Window(QMainWindow):
 
     def changed(self, text):
         self.status.setText(text)
+        self.update_focus()
         if self.session and self.session.revoked:
             self.approval.setEnabled(False); self.qr.clear()
 
