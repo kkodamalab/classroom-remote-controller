@@ -49,6 +49,17 @@ def test_recreated_window_requires_explicit_reselection(window):
     assert '操作不可' in w.focus_status.text()
 
 
+def test_failed_preflight_logged_without_repeated_timer_flood(window, monkeypatch):
+    w, _ = window
+    w.targets.setCurrentIndex(1)
+    monkeypatch.setattr(sys.modules['win32gui'], 'GetForegroundWindow', lambda:200)
+    w.update_focus()
+    text = w.logs.toPlainText()
+    assert 'focus_changed' in text and 'target_hwnd=100' in text and 'foreground_hwnd=200' in text
+    w.update_focus()
+    assert w.logs.toPlainText() == text
+
+
 def test_approval_button_only_pending_and_operation_separate(window):
     w, _ = window
     assert not w.approval.isEnabled()

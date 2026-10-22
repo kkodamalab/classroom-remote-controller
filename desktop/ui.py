@@ -9,7 +9,7 @@ from PySide6.QtCore import QTimer
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QMainWindow, QWidget, QVBoxLayout, QLabel, QPushButton, QComboBox, QCheckBox, QPlainTextEdit, QMessageBox
 from desktop.security import Session
-from desktop.diagnostics import ERRORS, classify
+from desktop.diagnostics import ERRORS, classify, context_text
 
 
 class Window(QMainWindow):
@@ -20,6 +20,7 @@ class Window(QMainWindow):
         self.transport = None
         self.session = None
         self.renewing = False
+        self.focus_observation = None
         self.setStyleSheet('QWidget {background:#101b29;color:#edf3f5;font-size:14px} QPushButton,QComboBox {padding:12px;background:#23374e;border-radius:6px} QPlainTextEdit {background:#09121d}')
         root = QWidget(); self.setCentralWidget(root); layout = QVBoxLayout(root)
         self.status = QLabel('セッション準備中'); layout.addWidget(self.status)
@@ -69,13 +70,19 @@ class Window(QMainWindow):
         snapshot = self.controller.snapshot()
         target = snapshot.target
         self.target_status.setText(f'対象：{target[2]} HWND={target[0]} PID={target[1]} ／ 固定={snapshot.locked}' if target else '対象：未選択')
-        code = None
+        code, detail = None, ''
         try:
             snapshot.check('powerpoint' if target and target[2] == 'powerpnt.exe' else 'mouse')
         except Exception as exc:
-            code, _ = classify(exc)
+            code, detail = classify(exc)
         approved = bool(self.session and self.session.approved and not self.session.revoked)
         context = snapshot.diagnostics
+        observation = (code, target, snapshot.locked, context.get('foreground_hwnd'), context.get('foreground_pid'), detail)
+        if code and observation != self.focus_observation:
+            # A failed preflight disables remote buttons; keep its diagnosis
+            # locally too, so the user never needs to bypass the guard to log it.
+            self.log(f'target_status: {code} {detail} {context_text(context)}')
+        self.focus_observation = observation
         self.focus_status.setText(('操作可能（画面結果は各操作後に確認）' if approved and code is None else '操作不可：' + (ERRORS[code] if code else 'PCの接続承認が必要です。')) + f"\n前面 HWND={context.get('foreground_hwnd')} PID={context.get('foreground_pid')} ／ 一致={context.get('focus_match')} スライドショー一致={context.get('slideshow_match')}")
         if self.transport and approved:
             self.transport.send({'type': 'control_state', 'available': code is None, 'code': code or 'ready', 'locked': snapshot.locked})
